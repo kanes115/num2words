@@ -179,7 +179,6 @@ class Num2Word_PL(Num2Word_Base):
 
         words = []
         chunks = list(splitbyx(str(n), 3))
-        print(chunks)
         i = len(chunks)
         for j in range(len(chunks)):
             x = chunks[j]
