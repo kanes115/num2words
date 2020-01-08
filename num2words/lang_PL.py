@@ -22,58 +22,58 @@ import itertools
 from .base import Num2Word_Base
 from .utils import get_digits, splitbyx
 
-ZERO = ('zero',)
+ZERO = ('zero', 'zerowy',)
 
 ONES = {
-    1: ('jeden',),
-    2: ('dwa',),
-    3: ('trzy',),
-    4: ('cztery',),
-    5: ('pięć',),
-    6: ('sześć',),
-    7: ('siedem',),
-    8: ('osiem',),
-    9: ('dziewięć',),
+    1: ('jeden', 'pierwszy'),
+    2: ('dwa', 'drugi'),
+    3: ('trzy','trzeci'),
+    4: ('cztery','czwarty'),
+    5: ('pięć', 'piąty'),
+    6: ('sześć', 'szósty'),
+    7: ('siedem', 'siódmy'),
+    8: ('osiem', 'ósmy'),
+    9: ('dziewięć', 'dziewiąty'),
 }
 
 TENS = {
-    0: ('dziesięć',),
-    1: ('jedenaście',),
-    2: ('dwanaście',),
-    3: ('trzynaście',),
-    4: ('czternaście',),
-    5: ('piętnaście',),
-    6: ('szesnaście',),
-    7: ('siedemnaście',),
-    8: ('osiemnaście',),
-    9: ('dziewiętnaście',),
+    0: ('dziesięć', 'dziesiąty'),
+    1: ('jedenaście', 'jedenasty'),
+    2: ('dwanaście', 'dwunasty'),
+    3: ('trzynaście', 'trzynasty'),
+    4: ('czternaście', 'czternsty'),
+    5: ('piętnaście', 'piętnasty'),
+    6: ('szesnaście', 'szesnasty'),
+    7: ('siedemnaście', 'sziedemnasty'),
+    8: ('osiemnaście', 'osiemnasty'),
+    9: ('dziewiętnaście', 'dziewiętnasty'),
 }
 
 TWENTIES = {
-    2: ('dwadzieścia',),
-    3: ('trzydzieści',),
-    4: ('czterdzieści',),
-    5: ('pięćdziesiąt',),
-    6: ('sześćdziesiąt',),
-    7: ('siedemdziesiąt',),
-    8: ('osiemdziesiąt',),
-    9: ('dziewięćdzisiąt',),
+    2: ('dwadzieścia', 'dwudziesty'),
+    3: ('trzydzieści', 'trzydziesty'),
+    4: ('czterdzieści', 'czterdziesty'),
+    5: ('pięćdziesiąt', 'pięćdziesiąty'),
+    6: ('sześćdziesiąt', 'szceśdziesiąty'),
+    7: ('siedemdziesiąt', 'siedemndziesiąty'),
+    8: ('osiemdziesiąt', 'osiemndziesiąty'),
+    9: ('dziewięćdzisiąt', 'dziewięćdziesiąty'),
 }
 
 HUNDREDS = {
-    1: ('sto',),
-    2: ('dwieście',),
-    3: ('trzysta',),
-    4: ('czterysta',),
-    5: ('pięćset',),
-    6: ('sześćset',),
-    7: ('siedemset',),
-    8: ('osiemset',),
-    9: ('dziewięćset',),
+    1: ('sto', 'setny'),
+    2: ('dwieście', 'dwusetny'),
+    3: ('trzysta', 'trzysetny'),
+    4: ('czterysta', 'czterysetny'),
+    5: ('pięćset', 'pięćsetny'),
+    6: ('sześćset', 'sześćsetny'),
+    7: ('siedemset', 'siedemsetny'),
+    8: ('osiemset', 'osiemsetny'),
+    9: ('dziewięćset', 'dziewięćsetny'),
 }
 
 THOUSANDS = {
-    1: ('tysiąc', 'tysiące', 'tysięcy'),  # 10^3
+    1: ('tysiąc', 'tysiące', 'tysięcy', 'tysięczny'),  # 10^3
 }
 
 prefixes = (   # 10^(6*x)
@@ -131,7 +131,16 @@ class Num2Word_PL(Num2Word_Base):
         return forms[form]
 
     def to_ordinal(self, number):
-        raise NotImplementedError()
+        n = str(number).replace(',', '.')
+        if '.' in n:
+            left, right = n.split('.')
+            return u'%s %s %s' % (
+                self._int2word(int(left)),
+                self.pointword,
+                self._int2word(int(right))
+            )
+        else:
+            return self._int2cardinal(int(n))
 
     def _int2word(self, n):
         if n == 0:
@@ -163,3 +172,60 @@ class Num2Word_PL(Num2Word_Base):
                 words.append(self.pluralize(x, THOUSANDS[i]))
 
         return ' '.join(words)
+    
+    def _int2cardinal(self, n):
+        if n == 0:
+            return ZERO[1]
+
+        words = []
+        chunks = list(splitbyx(str(n), 3))
+        print(chunks)
+        i = len(chunks)
+        for j in range(len(chunks)):
+            x = chunks[j]
+            i -= 1
+
+            is_last_non_zero_chunk = self._is_last_non_zero_chunk(j, chunks)
+            is_last_chunk = j == len(chunks) - 1
+
+            if x == 0:
+                continue
+
+            n1, n2, n3 = get_digits(x)
+
+            if n3 > 0 and n2 == 0 and n1 == 0 and is_last_chunk:
+                words.append(HUNDREDS[n3][1])
+            elif n3 > 0:
+                words.append(HUNDREDS[n3][0])
+
+            if n2 > 1 and is_last_chunk:
+                words.append(TWENTIES[n2][1])
+            elif n2 > 1:
+                words.append(TWENTIES[n2][0])
+
+            cardinal_ind = None
+            if is_last_chunk:
+                cardinal_ind = 1
+            else:
+                cardinal_ind = 0
+
+            if n2 == 1:
+                words.append(TENS[n1][cardinal_ind])
+            elif n1 > 0 and not (i > 0 and x == 1):
+                words.append(ONES[n1][cardinal_ind])
+
+            if i > 0 and is_last_non_zero_chunk:
+                words.append(THOUSANDS[1][3])
+            elif i > 0:
+                words.append(self.pluralize(x, THOUSANDS[i]))
+
+        return ' '.join(words)
+
+    def _is_last_non_zero_chunk(self, ind, chunks):
+        if ind == len(chunks) - 1:
+            return True
+        for i in range(ind + 1, len(chunks)):
+            if chunks[i] > 0:
+                return False
+        return True
+
